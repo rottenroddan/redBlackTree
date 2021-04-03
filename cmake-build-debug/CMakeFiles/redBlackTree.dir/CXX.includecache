@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/steve/CLionProjects/redBlackTree/RedBlackTree.h
+memory
+-
+iomanip
+-
+iostream
+-
+string
+-
+windows.h
+-
+
+C:/Users/steve/CLionProjects/redBlackTree/main.cpp
+iostream
+-
+RedBlackTree.h
+C:/Users/steve/CLionProjects/redBlackTree/RedBlackTree.h
+

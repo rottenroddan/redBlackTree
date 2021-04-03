@@ -1,0 +1,14 @@
+Determining if the CXX compiler works failed with the following output:
+Change Dir: C:/Users/steve/CLionProjects/redBlackTree/cmake-build-debug-visual-studio/CMakeFiles/CMakeTmp
+
+Run Build Command(s):nmake /nologo cmTC_34a70\fast && 	"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.22.27905\bin\HostX64\x64\nmake.exe"  -f CMakeFiles\cmTC_34a70.dir\build.make /nologo -L                  CMakeFiles\cmTC_34a70.dir\build
+Building CXX object CMakeFiles/cmTC_34a70.dir/testCXXCompiler.cxx.obj
+	C:\PROGRA~1\NVIDIA~2\CUDA\v11.2\bin\nvcc.exe @C:\Users\steve\AppData\Local\Temp\nmB3A9.tmp
+nvcc fatal   : Don't know what to do with '@C:/Users/steve/AppData/Local/Temp/nmB3A9.tmp'
+NMAKE : fatal error U1077: 'C:\PROGRA~1\NVIDIA~2\CUDA\v11.2\bin\nvcc.exe' : return code '0x1'
+Stop.
+NMAKE : fatal error U1077: '"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.22.27905\bin\HostX64\x64\nmake.exe"' : return code '0x2'
+Stop.
+
+
+

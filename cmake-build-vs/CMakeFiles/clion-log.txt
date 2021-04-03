@@ -1,0 +1,4 @@
+"C:\Program Files\JetBrains\CLion 2020.1.2\bin\cmake\win\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/bin/Hostx64/x64/cl.exe" -G "CodeBlocks - NMake Makefiles" C:\Users\steve\CLionProjects\redBlackTree
+-- Configuring done
+-- Generating done
+-- Build files have been written to: C:/Users/steve/CLionProjects/redBlackTree/cmake-build-vs
