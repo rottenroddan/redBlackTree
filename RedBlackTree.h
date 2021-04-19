@@ -9,8 +9,14 @@
 
 #ifndef REDBLACKTREE_REDBLACKTREE_H
 #define REDBLACKTREE_REDBLACKTREE_H
-
-void printInColor(std::string &s, int color)
+/**
+ * \brief       Used in print root methods. That way the key shows
+ *          what the color being printed is. Mostly for debug purpose.
+ *
+ * @param s String to be colored in std::cout
+ * @param color Int version of the color to use for std::cout. HEX.
+ */
+void printInColor(std::string &&s, int color)
 {
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     WORD oldColor;
@@ -26,80 +32,396 @@ void printInColor(std::string &s, int color)
 
 }
 
-// Enum for Node type.
+/**
+ * Enumerators for color of the Node.
+ */
 enum Color {red, black};
 
-template <typename type>
-struct Node
+/**
+ * \brief       Node class for acting as the nodes within the binary
+ *          tree. Has helper methods for returning parent, uncle, sibling
+ *          etc.
+ *
+ * @tparam kType Key value type.
+ * @tparam dType Data value type.
+ */
+template <typename kType, typename dType>
+class Node
 {
-    type data;
-    std::shared_ptr<Node<type>> left = nullptr;
-    std::shared_ptr<Node<type>> right = nullptr;
-    std::shared_ptr<Node<type>> parent = nullptr;
+public:
+    kType key;
+    dType data;
+    std::shared_ptr<Node<kType, dType>> left = nullptr;
+    std::shared_ptr<Node<kType, dType>> right = nullptr;
+    std::shared_ptr<Node<kType, dType>> parent = nullptr;
     Color color = Color::red;
+
+    /**
+     * \brief   Returns the parent (if there is) of this node. Else std::shared_ptr(nullptr)
+     * @return  std::shared_ptr<Node<kType, dType>> of the parent node.
+     */
+    std::shared_ptr<Node<kType, dType>> getParent();
+
+    /**
+     * \brief   Returns the uncle (if there is) of this node. Else std::shared_ptr(nullptr)
+     * @return  std::shared_ptr<Node<kType, dType>> of the uncle node.
+     */
+    std::shared_ptr<Node<kType, dType>> getUncle();
+
+    /**
+     * \brief   Returns the sibling (if there is) of this node. Else std::shared_ptr(nullptr)
+     * @return  std::shared_ptr<Node<kType, dType>> of the sibling node.
+     */
+    std::shared_ptr<Node<kType, dType>> getSibling();
 };
 
-template<typename type>
+template<typename kType, typename dType>
+std::shared_ptr<Node<kType, dType>> Node<kType, dType>::getParent() {
+    return this->parent;
+}
+
+template<typename kType, typename dType>
+std::shared_ptr<Node<kType, dType>> Node<kType, dType>::getUncle() {
+    if(this->parent != nullptr && this->parent->parent != nullptr) {
+        if(this->parent->parent->left == this->parent)
+            return this->parent->parent->right;
+        else
+            return this->parent->parent->left;
+    }
+    else
+    {
+        return std::shared_ptr<Node<kType, dType>>(nullptr);
+    }
+}
+
+template<typename kType, typename dType>
+std::shared_ptr<Node<kType, dType>> Node<kType, dType>::getSibling() {
+    if(this->parent != nullptr) {
+        if(this->parent->left != nullptr && this->parent->left->key == this->key)
+            return this->parent->right;
+        else if(this->parent->right != nullptr && this->parent->right->key == this->key)
+            return this->parent->left;
+        else
+            return std::shared_ptr<Node<kType, dType>>(nullptr);
+    }
+    else
+    {
+        return std::shared_ptr<Node<kType, dType>>(nullptr);
+    }
+}
+
+template<typename kType, typename dType>
 class RedBlackTree
 {
 private:
-    std::shared_ptr<Node<type>> root;
+    /**
+     * top root of the tree
+     */
+    std::shared_ptr<Node<kType, dType>> root;
 
-    std::shared_ptr<Node<type>> createLeaf(type val);
-    void privateAdjustTree(std::shared_ptr<Node<type>> &node);
-    bool privateInsert(std::shared_ptr<Node<type>> &root, std::shared_ptr<Node<type>> &node);
-    bool privateRedBlackInsert(std::shared_ptr<Node<type>> &root, type val);
+    /**
+     * counter for totalNodes. Increments/decrements on insert/remove success.
+     */
+    unsigned long long totalNodes;
 
-    // rotate functions
-    void privateLeftRotate(std::shared_ptr<Node<type>> &root);
-    void privateRightRotate(std::shared_ptr<Node<type>> &root);
+    /**
+     * \brief       Creates a node object when called with the parameters key
+     *          and data. Returns the resulting node.
+     *
+     * \details     Creates a node object when called with the parameters key
+     *          and data which is of types kType & dType respectively with the
+     *          declaration of the object type(s).
+     *
+     * @param key kType key value for traversing the tree.
+     * @param data Data that is stored in nodes. Not part of the structure
+     *          of the tree
+     *
+     * @return      std::shared_ptr<Node<kType, dType>> of the node created.
+     */
+    std::shared_ptr<Node<kType, dType>> createLeaf(kType key, dType data);
 
-    // print related methods
-    void privatePrintInorder(std::shared_ptr<Node<type>> root);
+    /**
+     * \brief       Private function for adjusting a tree when a new node has
+     *          just been inserted. Follows Red Black Tree rules for insertion.
+     *          Uses the parameter Node to adjust from there on.
+     *
+     * @param node std::shared_ptr<Node<kType, dType>> of the node we're adjusting
+     *          the tree to.
+     */
+    void privateInsertAdjustTree(std::shared_ptr<Node<kType, dType>> node);
 
-    void privatePrintTreeFromRoot(std::shared_ptr<Node<type>> root);
+    /**
+     * \brief       Recursively finds the node in which the newly created node
+     *          can be inserted at. If the Node->left/right is null, insert
+     *          the node param in that place.
+     *
+     * @param root Node we are recursively transcending down.
+     * @param node Node/leaf we are inserting into the tree.
+     *
+     * @return Boolean if the node was successfully inserted.
+     */
+    bool privateInsert(std::shared_ptr<Node<kType, dType>> root, std::shared_ptr<Node<kType, dType>> node);
 
+    /**
+     * \brief       Helper function that calls other methods upon insertion
+     *          of the tree.
+     *
+     * \details     Helper function that calls other methods upon insertion
+     *          of the tree. First calls privateInsert to insert into the tree
+     *          as a normal BST as a red node. Since we have the node as a ptr,
+     *          we call privateInsertAdjustTree to calibrate that(and parents)
+     *          node to match the rules of a red black tree.
+     *
+     * @param root Node that we start from.
+     * @param key kType key value of the node being inserted.
+     * @param data dType data value of the node being inserted.
+     * @return Boolean if the node was successfully inserted.
+     */
+    bool privateRedBlackInsert(std::shared_ptr<Node<kType, dType>> root, kType key, dType data);
+
+    /**
+     * \brief       Recursive standard BST function to the find the node we want to delete.
+     *
+     * @param root Node from where to start from.
+     */
+    void privateDeleteBST(std::shared_ptr<Node<kType, dType>> root);
+
+    /**
+     * \brief       Function that is called with the node we want to delete.
+     *
+     * \details     Function called with the param root, this root is the node
+     *          that we are deleting. Upon deleting, we proceed with the standard
+     *          delete case in a BST. Before the leaf node is replaced/deleted, we
+     *          set the appropriate variables like replacedColor and deletedColor
+     *          to find the best case.
+     *          Initial Steps:
+     *          -If deleted Node has 2 Null children, x->nullptr
+     *          -If deleted Node has 1 Null children, x->non-nullptr child.
+     *          -If deleted Node has 0 Null childrem, x->replacement->right(could be null)
+     *
+     *          Other Steps:
+     *          -If the node we deleted is red and its replacement is red or nullptr,
+     *          we are done.
+     *          -If the node we deleted is red and its replacement is black, color the
+     *          replacement red and proceed to CASES 0-4.
+     *          -If the node we deleted is black and its replacement is red, color the
+     *          replacement black, we are done.
+     *          -If the node we deleted is black and its replacement is null or black,
+     *          proceed to cases 0-4.
+     *
+     *          Cases:
+     *          -Case Zero: Node x is red.
+     *          -Case One: Node x is black and sibling is red
+     *          -Case Two: Node x is black and sibling is black and both children of
+     *          sibling is black.
+     *          -Case Three: Node x is black and sibling is black with:
+     *              -If x is left child, siblings left child is red and right is black.
+     *              -If x is right child, siblings right child is red and left is black.
+     *          -Case Four: Node x is black and sibling is black with:
+     *              -If x is left child, sibling right is red.
+     *              -If x is right childm sibling left is red.
+     * @param root
+     */
+    void privateDelete(std::shared_ptr<Node<kType, dType>> root);
+
+    /**
+     * \brief       Recursive function to the find the node we want to delete.
+     *          Upon finding the node to delete, call privateDelete.
+     *
+     * @param root Node from where to start from.
+     */
+    bool privateRemove(std::shared_ptr<Node<kType, dType>> root, kType key);
+
+    /**
+     * \brief       Performs a left rotate on the root node. Sets the
+     *          pivot node to roots->right child.
+     *
+     * @param root Node to perform left rotate on.
+     */
+    void privateLeftRotate(std::shared_ptr<Node<kType, dType>> root);
+
+    /**
+     * \brief       Performs a right rotate on the root node. Sets the
+     *          pivot node to roots->left child.
+     *
+     * @param root Node to perform right rotate on.
+     */
+    void privateRightRotate(std::shared_ptr<Node<kType, dType>> root);
+
+    /**
+     * \brief Debugging print inorder method.
+     * @param root To start from.
+     */
+    void privatePrintInorder(std::shared_ptr<Node<kType, dType>> root);
+    void privatePrintTreeFromRoot(std::shared_ptr<Node<kType, dType>> root);
+
+    /**
+     * \brief       Finds the largest value from the root Node.
+     *
+     * \details     Recursively transcends the tree to find the largest
+     *          value from the root Node.
+     *
+     * @param root Node starting point.
+     *
+     * @return std::shared_ptr<Node<KType, dType>> of the largest Node.
+     */
+    std::shared_ptr<Node<kType, dType>> privateFindLargest(std::shared_ptr<Node<kType, dType>> root);
+
+    /**
+     * \brief       Finds the smalled value from the root Node.
+     *
+     * \details     Recursively transcends the tree to find the smallest
+     *          value from the root Node.
+     *
+     * @param root Node starting point.
+     *
+     * @return std::shared_ptr<Node<KType, dType>> of the smallest Node.
+     */
+    std::shared_ptr<Node<kType, dType>> privateFindSmallest(std::shared_ptr<Node<kType, dType>> root);
+
+    /**
+     * \brief       Finds the key value from the root Node. If the node doesn't
+     *          contain the key value, recusively move left or right depending
+     *          on whether it is less than or greater than the search val.
+     *
+     * @param root Node starting point.
+     *
+     * @return std::shared_ptr<Node<KType, dType>> of the search Node.
+     */
+    std::shared_ptr<Node<kType, dType>> privateSearch(std::shared_ptr<Node<kType, dType>> root, const kType& val);
+
+    /**
+     * \brief       Checks if Case Zero is applicable. Returns true if so.
+     *          Else false.
+     *
+     * \details     Returns true if x is red.
+     *
+     * @param x Node x to check if Case Zero.
+     *
+     * @return Boolean true/false if is case zero.
+     */
+    bool privateCheckCaseZero(std::shared_ptr<Node<kType, dType>> x);
+
+    /**
+     * \brief       Checks if Case One is applicable. Returns true if so.
+     *          Else false.
+     *
+     * \details     Returns true if x is black and sibling w is red.
+     *
+     * @param x Node x to check if black.
+     * @param w Node w to check if red.
+     *
+     * @return Boolean true/false if is case one.
+     */
+    bool privateCheckCaseOne(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w);
+
+    /**
+     * \brief       Check if Case Two is applicable. Returns true if so.
+     *          Else false
+     *
+     * \details     Returns true if x is black and sibling w is black
+     *          and sibling w's childed are both black.
+     *
+     * @param x Node x to check if black.
+     * @param w Node w to check if black and children are black.
+     *
+     * @return Boolean true/false if is case two.
+     */
+    bool privateCheckCaseTwo(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w);
+
+    /**
+     * \brief       Check if Case Three is applicable. Returns true if so.
+     *          Else false.
+     *
+     * \details     Returns true if x is black and sibling w is black along with:
+     *          -If x is left child, and w->left is red and w->right is black.
+     *          -If x is right child, and w->right is red and w->left is black.
+     *
+     * @param x Node x to check if black.
+     * @param w Node w to check if black and one child is red.
+     * @param parent Parent of x and W. Used to find if the child is left or right.
+     *
+     * @return Boolean true/false if the case is three.
+     */
+    bool privateCheckCaseThree(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
+
+    /**
+     * \brief       Check if Case Four is applicable. Returns true if so.
+     *          Else false.
+     *
+     * \details     Returns true if x is black and sibling w is black along with:
+     *          -If x is left child, w->right is red.
+     *          -If x is right child, w->left is red.
+     *
+     * @param x Node x to check if black.
+     * @param w Node w to check if black and one child is red.
+     * @param parent Parent of x and W. Used to find if the child is left or right.
+     *
+     * @return Boolean true/false if the case is four.
+     */
+    bool privateCheckCaseFour(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parentw);
+
+    void privateCaseZero(std::shared_ptr<Node<kType, dType>> x);
+    void privateCaseOne(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
+    void privateCaseTwo(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
+    void privateCaseThree(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
+    void privateCaseFour(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
 public:
     RedBlackTree();
-    RedBlackTree(type rootValue);
-    bool insert(type insertValue);
+    RedBlackTree(kType rootKey, dType rootData);
+
+    unsigned long long getTotalSize() {return this->totalNodes;}
+
+    bool insert(kType key, dType data);
+    bool remove(kType key);
+
+    bool search(const kType& sKey, dType* dataPtr);
 
     void printInorder();
-    void printTreeFromRoot(type rootVal);
+    void printTreeFromRoot(kType rootVal);
+    void printTreeFromRoot();
+
+
+    void debugInsertRecursive(std::shared_ptr<Node<kType, dType>> &root, std::shared_ptr<Node<kType, dType>> &node);
+    void debugInsert(kType key, dType data, Color color);
+
 };
 
-template<typename type>
-RedBlackTree<type>::RedBlackTree(type rootValue)
+template<typename kType, typename dType>
+RedBlackTree<kType, dType>::RedBlackTree(kType rootKey, dType rootData)
 {
-    this->root = std::make_shared<Node<type>>();
-    this->root->data = rootValue;
+    this->root = std::make_shared<Node<kType, dType>>();
+    this->root->key = rootKey;
+    this->root->data = rootData;
     this->root->color = Color::black;
+    this->totalNodes = 1;
 }
 
-template<typename type>
-RedBlackTree<type>::RedBlackTree()
+template<typename kType, typename dType>
+RedBlackTree<kType, dType>::RedBlackTree()
 {
 
 }
 
 
-template<typename type>
-std::shared_ptr<Node<type>> RedBlackTree<type>::createLeaf(type val)
+template<typename kType, typename dType>
+std::shared_ptr<Node<kType, dType>> RedBlackTree<kType, dType>::createLeaf(kType key, dType data)
 {
-    auto leaf = std::make_shared<Node<type>>();
-    leaf->data = val;
+    auto leaf = std::make_shared<Node<kType, dType>>();
+    leaf->key = key;
+    leaf->data = data;
     return leaf;
 }
 
-template<typename type>
-void RedBlackTree<type>::privateAdjustTree(std::shared_ptr<Node<type>> &node)
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateInsertAdjustTree(std::shared_ptr<Node<kType, dType>> node)
 {
-    while(node != this->root)
+    while(node != this->root && node != nullptr)
     {
         // Set uncle of node to null, set uncle if exists.
-        auto parent =       std::shared_ptr<Node<type>>(nullptr);
-        auto grandparent =  std::shared_ptr<Node<type>>(nullptr);
-        auto uncle =        std::shared_ptr<Node<type>>(nullptr);
+        auto parent =       std::shared_ptr<Node<kType, dType>>(nullptr);
+        auto grandparent =  std::shared_ptr<Node<kType, dType>>(nullptr);
+        auto uncle =        std::shared_ptr<Node<kType, dType>>(nullptr);
 
         if(node != nullptr)
             parent = node->parent;
@@ -109,7 +431,7 @@ void RedBlackTree<type>::privateAdjustTree(std::shared_ptr<Node<type>> &node)
             uncle = grandparent->left == parent ? grandparent->right : grandparent->left;
 
         // Case that parent and child both are red
-        if(node->color == Color::red && node->parent->color == Color::red)
+        if(node != nullptr && node->color == Color::red && node->parent != nullptr && node->parent->color == Color::red)
         {
             // Case that child is left pointed to by parent.
             if(parent->left == node)
@@ -192,28 +514,29 @@ void RedBlackTree<type>::privateAdjustTree(std::shared_ptr<Node<type>> &node)
 
     // Set root to black!
     this->root->color = Color::black;
-    return;
 }
 
-template<typename type>
-bool RedBlackTree<type>::privateRedBlackInsert(std::shared_ptr<Node<type>> &root, type val)
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::privateRedBlackInsert(std::shared_ptr<Node<kType, dType>> root, kType key, dType data)
 {
     // Create Node we want to insert.
-    auto node = createLeaf(val);
+    auto node = createLeaf(key, data);
 
     bool itemInserted = privateInsert(root, node);
+
+    if(itemInserted)
+        this->totalNodes++;
+
     /*
      * TODO: Add color to node. Modify the rest of the tree.
      */
-    privateAdjustTree(node);
-
-
+    privateInsertAdjustTree(node);
 
     return itemInserted;
 }
 
-template<typename type>
-bool RedBlackTree<type>::privateInsert(std::shared_ptr<Node<type>> &root, std::shared_ptr<Node<type>> &node)
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::privateInsert(std::shared_ptr<Node<kType, dType>> root, std::shared_ptr<Node<kType, dType>> node)
 {
     // If root is empty, then insert node into here. Return true since we have inserted a new item.
     if(root == nullptr) {
@@ -221,10 +544,10 @@ bool RedBlackTree<type>::privateInsert(std::shared_ptr<Node<type>> &root, std::s
         return true;
     }
     // Else we transcend down.
-    else if(root->data != node->data) {
+    else if(root->key != node->key) {
         // Set Node Parent to this root.
         node->parent = root;
-        if(root->data < node->data)
+        if(root->key < node->key)
         {
             if(root->right != nullptr) {
                 return privateInsert(root->right, node);
@@ -253,46 +576,640 @@ bool RedBlackTree<type>::privateInsert(std::shared_ptr<Node<type>> &root, std::s
     }
 }
 
-template<typename type>
-bool RedBlackTree<type>::insert(type val)
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::insert(kType key, dType data)
 {
-    return privateRedBlackInsert(this->root, val);
+    return privateRedBlackInsert(this->root, key, data);
 }
 
-template<typename type>
-void RedBlackTree<type>::privateLeftRotate(std::shared_ptr<Node<type>> &root)
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::debugInsertRecursive(std::shared_ptr<Node<kType, dType>> &root, std::shared_ptr<Node<kType, dType>> &node)
 {
+    // If root is empty, then insert node into here. Return true since we have inserted a new item.
+    if(root == nullptr) {
+        root = node;
+        return ;
+    }
+        // Else we transcend down.
+    else if(root->key != node->key) {
+        // Set Node Parent to this root.
+        node->parent = root;
+        if(root->key < node->key)
+        {
+            if(root->right != nullptr) {
+                return privateInsert(root->right, node);
+            }
+            else {
+                root->right = node;
+                return ;
+            }
+        }
+        else
+        {
+            if(root->left != nullptr) {
+                return privateInsert(root->left, node);
+            }
+            else
+            {
+                root->left = node;
+                return ;
+            }
+        }
+    }
+        // Else, the value exists already, do not insert.
+    else
+    {
+        return ;
+    }
+}
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::debugInsert(kType key, dType data, Color color)
+{
+    auto x = createLeaf(key, data);
+    x->color = color;
+
+    privateInsert(this->root, x);
+}
+
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::privateCheckCaseZero(std::shared_ptr<Node<kType, dType>> x)
+{
+    if(x != nullptr && x->color == red)
+        return true;
+
+    return false;
+}
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateCaseZero(std::shared_ptr<Node<kType, dType>> x)
+{
+    x->color = Color::black;
+}
+
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::privateCheckCaseOne(std::shared_ptr<Node<kType, dType>> x,
+                                                     std::shared_ptr<Node<kType, dType>> w)
+{
+    if((x == nullptr || x->color == Color::black) && w != nullptr && w->color == Color::red)
+        return true;
+
+    return false;
+}
+
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::privateCheckCaseTwo(std::shared_ptr<Node<kType, dType>> x,
+                                                     std::shared_ptr<Node<kType, dType>> w)
+{
+    if((x == nullptr || x->color == Color::black)                      &&
+       (w != nullptr && w->color == Color::black)                      &&
+       ( (w->color == Color::black                      &&
+                         (w->right == nullptr || w->right->color == Color::black)        &&
+                         (w->left == nullptr || w->left->color == Color::black) ) ) )
+    {
+        return true;
+    }
+
+    return false;
+}
+
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::privateCheckCaseThree(std::shared_ptr<Node<kType, dType>> x,
+                                                       std::shared_ptr<Node<kType, dType>> w,
+                                                       std::shared_ptr<Node<kType, dType>> parent)
+{
+    if(( x == nullptr || x->color == Color::black)                      &&
+        (w != nullptr && w->color == Color::black)                      &&
+        ((parent != nullptr && parent->left == x && w != nullptr && w->left != nullptr && w->left->color == Color::red && (w->right == nullptr || w->right->color == Color::black))
+        ||
+        (parent != nullptr && parent->right == x && w != nullptr && w->right != nullptr && w->right->color == Color::red && (w->left == nullptr || w->left->color == Color::black))
+        ))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::privateCheckCaseFour(std::shared_ptr<Node<kType, dType>> x,
+                                                      std::shared_ptr<Node<kType, dType>> w,
+                                                      std::shared_ptr<Node<kType, dType>> parent)
+{
+    if((x == nullptr || x->color == Color::black) &&
+       w != nullptr &&
+       ((parent != nullptr && parent->right == x && w->left != nullptr && w->left->color == Color::red) || (parent != nullptr && parent->left == x && w->right != nullptr && w->right->color == Color::red)))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateCaseOne(std::shared_ptr<Node<kType, dType>> x,
+                                                std::shared_ptr<Node<kType, dType>> w,
+                                                std::shared_ptr<Node<kType, dType>> parent)
+{
+    // Color w black
+    w->color = Color::black;
+
+    // Color parent of x red
+    if(parent != nullptr)
+        parent->color = Color::red;
+
+    if(parent->left == x) {
+        privateLeftRotate(parent);
+        w = parent->right;
+    }
+    else {
+        privateRightRotate(parent);
+        w = parent->left;
+    }
+
     /*
-    // Temp of current root. As root parent will take right
-    auto z = root;
-    auto y = root->right;
+     * Decide on cases 2,3,4 from here!
+     * CASE 2.
+     */
+    if((x == nullptr || x->color == Color::black)                      &&
+            (w == nullptr || w->color == Color::black)                      &&
+            (w == nullptr || (w->color == Color::black                      &&
+                              (w->right == nullptr || w->right->color == Color::black)        &&
+                              (w->left == nullptr || w->left->color == Color::black) ) ) ) {
+        privateCaseTwo(x, w, parent);
+    }
+    /* CASE 3.
+     * IF X is black
+     * IF W Sibling is black
+     * IF X is left child, and w's left child  is red and right black
+     * IF X is right child, and w's left child is black and right red
+     */
+    else if((x == nullptr || x->color == Color::black)                      &&
+            (w == nullptr || w->color == Color::black)                      &&
+            ((parent != nullptr && parent->left == x && w != nullptr && w->left != nullptr && w->left->color == Color::red && (w->right == nullptr || w->right->color == Color::black))
+             ||
+             (parent != nullptr && parent->right == x && w != nullptr && w->right != nullptr && w->right->color == Color::red && (w->left == nullptr || w->left->color == Color::black))
+            ))
+    {
+        privateCaseThree(x, w, parent);
+    }
+    /* CASE 4. X is black/null && sibling w is black
+     * &&
+     * x is left child, T.F w's right child is red ||
+     * x ir right child, T.F. w's left child is red
+     */
+    else if((x == nullptr || x->color == Color::black) &&
+            w != nullptr &&
+            ((w->left != nullptr && w->left->color == Color::red) || (w->right != nullptr && w->right->color == Color::red)))
+    {
+        privateCaseFour(x, w, parent);
+    }
 
-    // If z parent exists and the parent points to the right, set the right point to y
-    if(z->parent != nullptr && z->parent->right == z)
-        z->parent->right = y;
-    // Else if parent exists and the parent points to the left, set the left point to y
-    else if(z->parent != nullptr && z->parent->left == z)
-        z->parent->left = y;
-    // else z->parent does not exist, T.F. do not modify.
+}
 
-    // Set y->parent to z->parent
-    y->parent = z->parent;
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateCaseTwo(std::shared_ptr<Node<kType, dType>> x,
+                                                std::shared_ptr<Node<kType, dType>> w,
+                                                std::shared_ptr<Node<kType,dType>> parent)
+{
+    std::shared_ptr<Node<kType, dType>> tempX = x;
+    std::shared_ptr<Node<kType, dType>> tempW = w;
+    std::shared_ptr<Node<kType, dType>> tempP = parent;
 
-    // Set Z parent to y now. Z points to Y's left.
-    z->parent = y;
-    z->right = y->left;
+    if(w != nullptr)
+        w->color = Color::red;
 
-    // Y's left now points to z.
-    y->left = z;
+    x = parent;
 
-    // Now check if this points to Z
-    if(z == this->root)
-        this->root = y;*/
+    w = x->getSibling();
+    if(x != nullptr)
+        parent = x->parent;
+
+    if(x != nullptr && x->color == Color::red)
+    {
+        x->color = Color::black;
+    }
+    else
+    {
+        if(privateCheckCaseOne(x, w))
+            privateCaseOne(x, w, parent);
+        else if(privateCheckCaseTwo(x, w))
+            privateCaseTwo(x, w, parent);
+        else if(privateCheckCaseThree(x, w, parent))
+            privateCaseThree(x, w, parent);
+        else if(privateCheckCaseFour(x, w, parent))
+            privateCaseFour(x, w, parent);
+        else
+            return;
+    }
+}
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateCaseThree(std::shared_ptr<Node<kType, dType>> x,
+                                                  std::shared_ptr<Node<kType, dType>> w,
+                                                  std::shared_ptr<Node<kType, dType>> parent)
+{
+    // Color w's child black(the one thats red)
+    if(parent != nullptr && parent->left == x)
+        w->left->color = Color::black;
+    else
+        w->right->color = Color::black;
+
+    // Color w red
+    w->color = Color::red;
+
+    if(parent != nullptr && parent->left == x)
+        privateRightRotate(w);
+    else
+        privateLeftRotate(w);
+
+    if(parent->left == x)
+        w = parent->right;
+    else
+        w = parent->left;
+
+    if(privateCheckCaseFour(x, w, parent))
+        privateCaseFour(x, w, parent);
+}
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateCaseFour(std::shared_ptr<Node<kType, dType>> x,
+                                                 std::shared_ptr<Node<kType, dType>> w,
+                                                 std::shared_ptr<Node<kType, dType>> parent)
+{
+    // Color w the same color as x->parent
+    if(w != nullptr && parent != nullptr)
+        w->color = parent->color;
+
+    // Color parent black
+    if(parent != nullptr)
+        parent->color = Color::black;
+
+    // Color w's child black now depending on if x is left or right.
+    if(w != nullptr && parent != nullptr) {
+        if(parent->left == x) {
+            if(w->right != nullptr)
+                w->right->color = Color::black;
+            privateLeftRotate(parent);
+        }
+        else
+        {
+            if(w->left != nullptr)
+                w->left->color = Color::black;
+            privateRightRotate(parent);
+        }
+    }
+    else
+    {
+        std::cout << "Unimplemented 4th case scenario" << std::endl;
+    }
+
+}
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateDeleteBST(std::shared_ptr<Node<kType, dType>> root)
+{
+    if(root->left == nullptr && root->right == nullptr)
+    {
+        if(root->parent != nullptr) {
+            if (root->parent->left == root)
+                root->parent->left = nullptr;
+            else
+                root->parent->right = nullptr;
+
+            root->parent = nullptr;
+        }
+        else
+        {
+            this->root = nullptr;
+        }
+    }
+    // case that root has only one child.
+    else if((root->left != nullptr && root->right == nullptr) || (root->right != nullptr && root->left == nullptr))
+    {
+        // case that left child exists
+        if(root->left != nullptr)
+        {
+            root->left->parent = root->parent;
+
+            if(root->parent != nullptr && root->parent->left == root)
+                root->parent->left = root->left;
+            else
+                root->parent->right = root->left;
+
+            root->parent = nullptr;
+            root->left = nullptr;
+        }
+        else
+        {
+            root->right->parent = root->parent;
+
+            if(root->parent != nullptr && root->parent->left == root)
+                root->parent->left = root->right;
+            else
+                root->parent->right = root->right;
+
+            root->parent = nullptr;
+            root->right = nullptr;
+        }
+    }
+}
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateDelete(std::shared_ptr<Node<kType, dType>> root)
+{
+    std::shared_ptr<Node<kType, dType>> x;
+    std::shared_ptr<Node<kType, dType>> xParent;
+    std::shared_ptr<Node<kType, dType>> w;
+    std::shared_ptr<Node<kType, dType>> replacementNode;
+    Color deletedColor;
+    Color replacementColor;
+
+    // case that root is leaf!
+    if(root->left == nullptr && root->right == nullptr)
+    {
+        xParent = root->parent;
+
+        if(root->parent != nullptr) {
+            if (root->parent->left == root)
+                root->parent->left = nullptr;
+            else
+                root->parent->right = nullptr;
+
+            deletedColor = root->color;
+            root->parent = nullptr;
+        }
+        else
+        {
+            deletedColor = this->root->color;
+            this->root = nullptr;
+        }
+
+        replacementColor = Color::black;
+        x = nullptr;
+    }
+    // case that root has only one child.
+    else if((root->left != nullptr && root->right == nullptr) || (root->right != nullptr && root->left == nullptr))
+    {
+        // case that left child exists
+        if(root->left != nullptr)
+        {
+            xParent = root->parent;
+            x = root->left;
+            replacementNode = x;
+            deletedColor = root->color;
+            replacementColor = x->color;
+
+            if(root->parent != nullptr && root->parent->left == root) {
+                root->parent->left = x;
+                x->parent = root->parent;
+                root->left = nullptr;
+                root->parent = nullptr;
+            }
+            else if(root->parent != nullptr && root->parent->right == root) {
+                root->parent->right = x;
+                x->parent = root->parent;
+                root->left = nullptr;
+                root->parent = nullptr;
+            }
+            // root is top of tree!
+            else {
+                this->root = x;
+                root->right = nullptr;
+                root->left = nullptr;
+                root->parent = nullptr;
+            }
+
+        }
+        else
+        {
+            xParent = root->parent;
+            x = root->right;
+            replacementNode = x;
+            deletedColor = root->color;
+            replacementColor = x->color;
+
+            if(root->parent != nullptr && root->parent->left == root) {
+                root->parent->left = x;
+                x->parent = root->parent;
+                root->left = nullptr;
+                root->parent = nullptr;
+            }
+            else if(root->parent != nullptr && root->parent->right == root) {
+                root->parent->right = x;
+                x->parent = root->parent;
+                root->left = nullptr;
+                root->parent = nullptr;
+            }
+            else {
+                this->root = x;
+                root->right = nullptr;
+                root->left = nullptr;
+                root->parent = nullptr;
+            }
+        }
+
+        if(deletedColor == Color::black && replacementColor == Color::red)
+        {
+            x->color = Color::black;
+        }
+    }
+    // else its two children
+    else
+    {
+        auto successor = this->privateFindSmallest(root->right);
+        x = successor->right;
+        deletedColor = root->color;
+        replacementColor = successor->color;
+
+        root->key = successor->key;
+        root->data = successor->data;
+        root->color = successor->color;
+
+        replacementNode = root;
+
+        xParent = successor->parent;
+        privateDeleteBST(successor);
+    }
+
+
+    /*
+    if(x == nullptr && w == nullptr && replacementNode == nullptr)
+    {
+        std::cout << "Here boi!" << std::endl;
+        return;
+    }
+
+    if(deletedColor == Color::red && (replacementNode == nullptr || replacementNode->color == Color::red))
+    {
+        std::cout << "Here boi!" << std::endl;
+        return;
+    }*/
+
+    // Set W now since we're beyond delete.
+    if(xParent != nullptr) {
+        if(xParent->left == x)
+            w = xParent->right;
+        else
+            w = xParent->left;
+    }
+
+    /*
+     * If the node we deleted is red and its replacement is red
+     * Done...
+     */
+    //if(x == nullptr || (replacementColor == Color::red && deletedColor == Color::red))
+    if((replacementNode == nullptr || replacementColor == Color::red) && deletedColor == Color::red)
+    {
+        return; // we are done.
+    }
+    /*
+     * If the node we deleted is black and the replacement is red.
+     * Done...
+     */
+    else if( deletedColor == Color::black && replacementColor == Color::red)
+    {
+        replacementNode->color = Color::black;
+        return;
+    }
+    /*
+     * If the deleted color is red and replacement is black, color the replacement red
+     * and proceed to appropiate case.
+     */
+    else if(deletedColor == Color::red && replacementColor == Color::black)
+    {
+        replacementNode->color = Color::red;
+
+        // find sibling
+        /*
+        if(replacementNode->right == x)
+            w = replacementNode->left;
+        else
+            w = replacementNode->right;*/
+
+        // Case 0.
+        if(privateCheckCaseZero(x)) {
+            privateCaseZero(x);
+        }
+        // Case 1.
+        else if(privateCheckCaseOne(x, w))
+        {
+            privateCaseOne(x, w, xParent);
+        }
+        /* CASE 2.
+         * IF X is black.
+         * IF Sibling W is black
+         * IF SIBLING W's Children are both black.
+         */
+        else if(privateCheckCaseTwo(x, w)) {
+            privateCaseTwo(x, w, xParent);
+        }
+        /* CASE 3.
+         * IF X is black
+         * IF W Sibling is black
+         * IF X is left child, and w's left child  is red and right black
+         * IF X is right child, and w's left child is black and right red
+         */
+        else if(privateCheckCaseThree(x, w, xParent))
+        {
+            privateCaseThree(x, w, xParent);
+        }
+        else if(privateCheckCaseFour(x, w, xParent))
+        {
+            privateCaseFour(x,w,xParent);
+        }
+    }
+    /*
+     * If the node we deleted is black and the replacement is black or null
+     */
+    else if(deletedColor == Color::black && (replacementNode == nullptr || replacementColor == Color::black))
+    {
+        // Case 0.
+        if(privateCheckCaseZero(x)) {
+            privateCaseZero(x);
+        }
+        // Case 1.
+        else if(privateCheckCaseOne(x, w))
+        {
+            privateCaseOne(x, w, xParent);
+        }
+        /* CASE 2.
+         * IF X is black.
+         * IF Sibling W is black
+         * IF SIBLING W's Children are both black.
+         * */
+        else if(privateCheckCaseTwo(x, w)) {
+            privateCaseTwo(x, w, xParent);
+        }
+        /* CASE 3.
+         * IF X is black
+         * IF W Sibling is black
+         * IF X is left child, and w's left child  is red and right black
+         * IF X is right child, and w's left child is black and right red
+         */
+        else if(privateCheckCaseThree(x, w, xParent))
+        {
+            privateCaseThree(x, w, xParent);
+        }
+        /* CASE 4. X is black/null && sibling w is black
+         * &&
+         * x is left child, T.F w's right child is red ||
+         * x ir right child, T.F. w's left child is red
+         */
+        else if(privateCheckCaseFour(x, w, xParent))
+        {
+            privateCaseFour(x, w, xParent);
+        }
+    }
+}
+
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::privateRemove(std::shared_ptr<Node<kType, dType>> root, kType key) {
+    if(root != nullptr)
+    {
+        if(root->key == key)
+        {
+            privateDelete(root);
+            this->totalNodes--;
+            return true;
+        }
+        else if(root->key < key)
+        {
+            return privateRemove(root->right, key);
+        }
+        else
+        {
+            return privateRemove(root->left, key);
+        }
+    }
+    // else node is not found in the tree.
+    else
+    {
+        return false;
+    }
+}
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::remove(kType key)
+{
+    bool removed = privateRemove(this->root, key);
+
+    return removed;
+}
+
+
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateLeftRotate(std::shared_ptr<Node<kType, dType>> root)
+{
     auto pivot = root->right;
 
     if(pivot != nullptr)
     {
         root->right = pivot->left;
+
+        if(pivot->left != nullptr)
+            pivot->left->parent = root;
 
         pivot->left = root;
         pivot->parent = root->parent;
@@ -304,43 +1221,24 @@ void RedBlackTree<type>::privateLeftRotate(std::shared_ptr<Node<type>> &root)
 
         root->parent = pivot;
 
+        if(this->root == root)
+        {
+            this->root = pivot;
+        }
     }
 }
 
-template<typename type>
-void RedBlackTree<type>::privateRightRotate(std::shared_ptr<Node<type>> &root)
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privateRightRotate(std::shared_ptr<Node<kType, dType>> root)
 {
-    /*
-    // Temp of current root. As root parent will take right/
-    auto z = root;
-    auto y = root->left;
-
-    // If z parent exists and the parent points to the right, set the right point to y
-    if(z->parent != nullptr && z->parent->right == z)
-        z->parent->right = y;
-    // Else if parent exists and the parent points to the left, set the left point to y
-    else if(z->parent != nullptr && z->parent->left == z)
-        z->parent->left = y;
-    // else z->parent does not exist, T.F. do not modify.
-
-    // Set y->parent to z->parent
-    y->parent = z->parent;
-    // Set Z parent to y now.
-    z->parent = y;
-
-    z->left = y->right;
-
-    // Y's left now points to z.
-    y->right = z;
-
-    // Now check if this points to Z
-    if(z == this->root)
-        this->root = y;*/
     auto pivot = root->left;
 
     if(pivot != nullptr)
     {
         root->left = pivot->right;
+
+        if(pivot->right != nullptr)
+            pivot->right->parent = root;
 
         pivot->right = root;
         pivot->parent = root->parent;
@@ -352,18 +1250,88 @@ void RedBlackTree<type>::privateRightRotate(std::shared_ptr<Node<type>> &root)
 
         root->parent = pivot;
 
+        if(this->root == root)
+        {
+            this->root = pivot;
+        }
     }
 }
 
-template<typename type>
-void RedBlackTree<type>::privatePrintInorder(std::shared_ptr<Node<type>> root) {
+template<typename kType, typename dType>
+std::shared_ptr<Node<kType, dType>> RedBlackTree<kType, dType>::privateSearch(std::shared_ptr<Node<kType, dType>> root, const kType &key) {
+
+    if(root != nullptr)
+    {
+        if(root->key == key)
+        {
+            return root;
+        }
+
+        if(root->left != nullptr && root->key > key)
+        {
+            return privateSearch(root->left, key);
+        }
+        else
+        {
+            return privateSearch(root->right, key);
+        }
+    }
+    else
+    {
+        return std::shared_ptr<Node<kType, dType>>(nullptr);
+    }
+}
+
+template<typename kType, typename dType>
+std::shared_ptr<Node<kType, dType>> RedBlackTree<kType, dType>::privateFindLargest(std::shared_ptr<Node<kType, dType>> root)
+{
+    if(root->right != nullptr)
+    {
+        return privateFindLargest(root->right);
+    }
+    else
+    {
+        return root;
+    }
+}
+
+template<typename kType, typename dType>
+std::shared_ptr<Node<kType, dType>> RedBlackTree<kType, dType>::privateFindSmallest(std::shared_ptr<Node<kType, dType>> root)
+{
+    if(root->left != nullptr)
+    {
+        return privateFindSmallest(root->left);
+    }
+    else
+    {
+        return root;
+    }
+}
+
+template<typename kType, typename dType>
+bool RedBlackTree<kType, dType>::search(const kType& sKey, dType* dataPtr)
+{
+    auto results = privateSearch(this->root, sKey);
+    if(results == nullptr)
+    {
+        return false;
+    }
+    else
+    {
+        *dataPtr = results->data;
+        return true;
+    }
+}
+
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::privatePrintInorder(std::shared_ptr<Node<kType, dType>> root) {
     if(root != nullptr) {
         if(root->left != nullptr)
         {
             privatePrintInorder(root->left);
         }
 
-        std::cout << root->data << " ";
+        std::cout << root->key << " ";
 
         if(root->right != nullptr)
         {
@@ -372,15 +1340,15 @@ void RedBlackTree<type>::privatePrintInorder(std::shared_ptr<Node<type>> root) {
     }
     return;
 }
-template<typename type>
-void RedBlackTree<type>::printInorder()
+template<typename kType, typename dType>
+void RedBlackTree<kType, dType>::printInorder()
 {
     privatePrintInorder(this->root);
     std::cout << std::endl;
 }
 
-template <typename type>
-void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> root)
+template <typename kType, typename dType>
+void RedBlackTree<kType, dType>::privatePrintTreeFromRoot(std::shared_ptr<Node<kType, dType>> root)
 {
     const int CENTER_PADDING = 40;
     const int NULL_COLOR = 0x00;
@@ -392,7 +1360,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING);
-        printInColor( "( " + std::to_string(root->data) + " )", root->color == Color::red ? RED : BLACK);
+        printInColor("( " + std::to_string(root->key) + " )", root->color == Color::red ? RED : BLACK);
     }
     else
     {
@@ -408,7 +1376,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->left != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/2);
-        printInColor("( " + std::to_string(root->left->data) + " )", root->left->color == Color::red ? RED: BLACK );
+        printInColor("( " + std::to_string(root->left->key) + " )", root->left->color == Color::red ? RED : BLACK );
     }
     else
     {
@@ -419,7 +1387,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->right != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING);
-        printInColor("( " + std::to_string(root->right->data) + " )", root->right->color == Color::red ? RED: BLACK );
+        printInColor("( " + std::to_string(root->right->key) + " )", root->right->color == Color::red ? RED : BLACK );
         std::cout << std::setw(CENTER_PADDING/2);
     }
     else
@@ -436,7 +1404,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->left != nullptr && root->left->left != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/4);
-        printInColor("( " + std::to_string(root->left->left->data) + " )", root->left->left->color == Color::red ? RED: BLACK );
+        printInColor("( " + std::to_string(root->left->left->key) + " )", root->left->left->color == Color::red ? RED : BLACK );
     }
     else
     {
@@ -447,7 +1415,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->left != nullptr && root->left->right != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/2);
-        printInColor("( " + std::to_string(root->left->right->data) + " )", root->left->right->color == Color::red ? RED: BLACK );
+        printInColor("( " + std::to_string(root->left->right->key) + " )", root->left->right->color == Color::red ? RED : BLACK );
     }
     else
     {
@@ -458,7 +1426,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->right != nullptr && root->right->left != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/2);
-        printInColor("( " + std::to_string(root->right->left->data) + " )", root->right->left->color == Color::red ? RED: BLACK);
+        printInColor("( " + std::to_string(root->right->left->key) + " )", root->right->left->color == Color::red ? RED : BLACK);
     }
     else
     {
@@ -469,7 +1437,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->right != nullptr && root->right->right != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/2);
-        printInColor("( " + std::to_string(root->right->right->data) + " )", root->right->right->color == Color::red ? RED: BLACK);
+        printInColor("( " + std::to_string(root->right->right->key) + " )", root->right->right->color == Color::red ? RED : BLACK);
     }
     else
     {
@@ -484,7 +1452,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->left != nullptr && root->left->left != nullptr && root->left->left->left != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/8);
-        printInColor("( " + std::to_string(root->left->left->left->data) + " )", root->left->left->left->color == Color::red ? RED: BLACK );
+        printInColor("( " + std::to_string(root->left->left->left->key) + " )", root->left->left->left->color == Color::red ? RED : BLACK );
     }
     else
     {
@@ -495,7 +1463,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->left != nullptr && root->left->left != nullptr && root->left->left->right != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/4);
-        printInColor("( " + std::to_string(root->left->left->right->data) + " )", root->left->left->right->color == Color::red ? RED: BLACK );
+        printInColor("( " + std::to_string(root->left->left->right->key) + " )", root->left->left->right->color == Color::red ? RED : BLACK );
     }
     else
     {
@@ -506,7 +1474,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->left != nullptr && root->left->right != nullptr && root->left->right->left != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/4);
-        printInColor("( " + std::to_string(root->left->right->left->data) + " )", root->left->right->left->color == Color::red ? RED: BLACK );
+        printInColor("( " + std::to_string(root->left->right->left->key) + " )", root->left->right->left->color == Color::red ? RED : BLACK );
     }
     else
     {
@@ -517,7 +1485,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->left != nullptr && root->left->right != nullptr && root->left->right->right != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/4);
-        printInColor("( " + std::to_string(root->left->right->right->data) + " )", root->left->right->right->color == Color::red ? RED: BLACK );
+        printInColor("( " + std::to_string(root->left->right->right->key) + " )", root->left->right->right->color == Color::red ? RED : BLACK );
     }
     else
     {
@@ -528,7 +1496,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->right != nullptr && root->right->left != nullptr && root->right->left->left != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/4);
-        printInColor("( " + std::to_string(root->right->left->left->data) + " )", root->right->left->left->color == Color::red ? RED: BLACK);
+        printInColor("( " + std::to_string(root->right->left->left->key) + " )", root->right->left->left->color == Color::red ? RED : BLACK);
     }
     else
     {
@@ -539,7 +1507,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->right != nullptr && root->right->left != nullptr && root->right->left->right != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/4);
-        printInColor("( " + std::to_string(root->right->left->right->data) + " )", root->right->left->right->color == Color::red ? RED: BLACK);
+        printInColor("( " + std::to_string(root->right->left->right->key) + " )", root->right->left->right->color == Color::red ? RED : BLACK);
     }
     else
     {
@@ -550,7 +1518,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->right != nullptr && root->right->right != nullptr && root->right->right->left != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/4);
-        printInColor("( " + std::to_string(root->right->right->left->data) + " )", root->right->right->left->color == Color::red ? RED: BLACK);
+        printInColor("( " + std::to_string(root->right->right->left->key) + " )", root->right->right->left->color == Color::red ? RED : BLACK);
     }
     else
     {
@@ -561,7 +1529,7 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
     if(root != nullptr && root->right != nullptr && root->right->right != nullptr && root->right->right->right != nullptr)
     {
         std::cout << std::setw(CENTER_PADDING/4);
-        printInColor("( " + std::to_string(root->right->right->right->data) + " )", root->right->right->right->color == Color::red ? RED: BLACK);
+        printInColor("( " + std::to_string(root->right->right->right->key) + " )", root->right->right->right->color == Color::red ? RED : BLACK);
     }
     else
     {
@@ -571,11 +1539,19 @@ void RedBlackTree<type>::privatePrintTreeFromRoot(std::shared_ptr<Node<type>> ro
 
 }
 
-template <typename type>
-void RedBlackTree<type>::printTreeFromRoot(type rootVal)
+template <typename kType, typename dType>
+void RedBlackTree<kType, dType>::printTreeFromRoot()
 {
     privatePrintTreeFromRoot(this->root);
 }
+
+template <typename kType, typename dType>
+void RedBlackTree<kType, dType>::printTreeFromRoot(kType rootVal)
+{
+    auto r = privateSearch(this->root, rootVal);
+    privatePrintTreeFromRoot(r);
+}
+
 
 
 #endif //REDBLACKTREE_REDBLACKTREE_H
