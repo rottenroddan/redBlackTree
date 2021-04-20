@@ -9,12 +9,16 @@
 
 #ifndef REDBLACKTREE_REDBLACKTREE_H
 #define REDBLACKTREE_REDBLACKTREE_H
+
+#ifdef WIN32
 /**
  * \brief       Used in print root methods. That way the key shows
  *          what the color being printed is. Mostly for debug purpose.
  *
  * @param s String to be colored in std::cout
  * @param color Int version of the color to use for std::cout. HEX.
+ *
+ * \note        This is windows only function.
  */
 void printInColor(std::string &&s, int color)
 {
@@ -29,8 +33,16 @@ void printInColor(std::string &&s, int color)
     std::cout << s;
 
     SetConsoleTextAttribute(hConsole, oldColor);
-
 }
+#elif __unix__
+void printInColor(std::string &&s, int color)
+{
+    /*
+     * No color yet :/
+     */
+    std::cout << s;
+}
+#endif
 
 /**
  * Enumerators for color of the Node.
@@ -361,10 +373,73 @@ private:
      */
     bool privateCheckCaseFour(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parentw);
 
+    /**
+     * \brief       Adjusts x Node to fit case zero.
+     *
+     * \details     Colors x Node black. Does not branch to other cases.
+     *
+     * @param x Node that is of case zero.
+     */
     void privateCaseZero(std::shared_ptr<Node<kType, dType>> x);
+
+    /**
+     * \brief       Adjusts x Node, w Node, and parent Node to match that of
+     *          case one to a Red Black BST.
+     *
+     * \details     Node x is black and w is red. Color w black. Color x parent red.
+     *          Rotate parent depending on if x is left child, then left rotation, etc.
+     *          Adjust w to the new sibling. Branch to next case 2-4 depending on results.
+     *
+     * @param x Node that is of case one.
+     * @param w Sibling of Node x.
+     * @param parent Node that is parent of x. X can be null. Parent is needed.
+     */
     void privateCaseOne(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
+
+    /**
+     * \brief       Adjusts x Node, w Node, and Parent Node to match that of
+     *          case two to a Red Black BST.
+     *
+     * \details     Node x is black, w is black, and both children of w are black.
+     *          Color w red. Set x to parent. If x is red, color black. Else proceed
+     *          to cases 1-4 based on result.
+     *
+     * @param x Node that is of case one.
+     * @param w Sibling of Node x.
+     * @param parent Node that is parent of x. X can be null. Parent is needed.
+     */
     void privateCaseTwo(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
+
+    /**
+     * \brief       Adjusts x Node, w Node, and parent Node to match that of
+     *          case three to a Red Black BST.
+     *
+     * \details     Node x is black, w is black, and one child of w is red.
+     *          If x is left child, then w's left child is red and right is black. Else
+     *          conversely with x is right child, then w's right child is red and left
+     *          is black. Color the red child black, color w red. Rotate w based on left
+     *          or right. Adjust w to the new w since the rotate. Proceed to case 4.
+     *
+     * @param x Node that is of case one.
+     * @param w Sibling of Node x.
+     * @param parent Node that is parent of x. X can be null. Parent is needed.
+     */
     void privateCaseThree(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
+
+    /**
+     * \brief       Adjusts x Node, w Node, and parent Node to match that of
+     *          case four to a Red Black BST.
+     *
+     * \details     Node x is black, w is black and w's right child is red with x
+     *          being pointed to by the left. Conversily flipped as well. w gets set
+     *          to parents color. Parent gets colored black. Color w's child black.
+     *          Rotate the parent left if x is left child. Right if else. Then we are
+     *          done, don't branch to another case.
+     *
+     * @param x Node that is of case one.
+     * @param w Sibling of Node x.
+     * @param parent Node that is parent of x. X can be null. Parent is needed.
+     */
     void privateCaseFour(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
 public:
     RedBlackTree();
@@ -860,11 +935,6 @@ void RedBlackTree<kType, dType>::privateCaseFour(std::shared_ptr<Node<kType, dTy
             privateRightRotate(parent);
         }
     }
-    else
-    {
-        std::cout << "Unimplemented 4th case scenario" << std::endl;
-    }
-
 }
 
 template<typename kType, typename dType>
@@ -1032,20 +1102,6 @@ void RedBlackTree<kType, dType>::privateDelete(std::shared_ptr<Node<kType, dType
         xParent = successor->parent;
         privateDeleteBST(successor);
     }
-
-
-    /*
-    if(x == nullptr && w == nullptr && replacementNode == nullptr)
-    {
-        std::cout << "Here boi!" << std::endl;
-        return;
-    }
-
-    if(deletedColor == Color::red && (replacementNode == nullptr || replacementNode->color == Color::red))
-    {
-        std::cout << "Here boi!" << std::endl;
-        return;
-    }*/
 
     // Set W now since we're beyond delete.
     if(xParent != nullptr) {
@@ -1551,7 +1607,5 @@ void RedBlackTree<kType, dType>::printTreeFromRoot(kType rootVal)
     auto r = privateSearch(this->root, rootVal);
     privatePrintTreeFromRoot(r);
 }
-
-
 
 #endif //REDBLACKTREE_REDBLACKTREE_H
