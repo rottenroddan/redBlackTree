@@ -442,14 +442,62 @@ private:
      */
     void privateCaseFour(std::shared_ptr<Node<kType, dType>> x, std::shared_ptr<Node<kType, dType>> w, std::shared_ptr<Node<kType, dType>> parent);
 public:
+    /**
+     * \brief       Constructs an empty tree.
+     *
+     * \details     Constructs an empty tree.
+     */
     RedBlackTree();
+
+    /**
+     * \brief       Constructs a tree with the following two params.
+     *
+     * \details     Constucts a tree with one initial node. rootKey is the starting
+     *          key value for the root of the tree, and rootData as the data value
+     *          for that key.
+     *
+     * @param rootKey Key value of the data entry.
+     * @param rootData Data value for that key entry.
+     */
     RedBlackTree(kType rootKey, dType rootData);
 
+    /**
+     * \brief       Returns the total entries of the tree.
+     *
+     * @return Unsigned long long size of the total nodes in the tree.
+     */
     unsigned long long getTotalSize() {return this->totalNodes;}
 
+    /**
+     * \details     Attempts an insertion into the tree with the two
+     *          given params. Calls the privateInsert function to build
+     *          onto the tree. Returns false if inserting the node results
+     *          in a collision.
+     *
+     * @param key Key value of node being inserted.
+     * @param data Data value of node being inserted.
+     * @return Bool if inserting into the tree was successful.
+     */
     bool insert(kType key, dType data);
+
+    /**
+     * \details     Attempts to remove an item from the tree.
+     * @param key
+     * @return
+     */
     bool remove(kType key);
 
+    /**
+     * \details     Searches the tree for search key parameter and if
+     *          if exists in the tree, returns true. Else returns false
+     *          since entry is not in tree. dataPtr param is a pointer
+     *          to an object that is to be filled with what is from
+     *          the tree.
+     *
+     * @param sKey Search Key to be searched against in the tree.
+     * @param dataPtr Pointer to data type that is to be copied into.
+     * @return Bool depending if search key is in the tree.
+     */
     bool search(const kType& sKey, dType* dataPtr);
 
     void printInorder();
@@ -457,9 +505,11 @@ public:
     void printTreeFromRoot();
 
 
+    /**
+     * Debugging puposes only.
+     */
     void debugInsertRecursive(std::shared_ptr<Node<kType, dType>> &root, std::shared_ptr<Node<kType, dType>> &node);
     void debugInsert(kType key, dType data, Color color);
-
 };
 
 template<typename kType, typename dType>
@@ -473,10 +523,7 @@ RedBlackTree<kType, dType>::RedBlackTree(kType rootKey, dType rootData)
 }
 
 template<typename kType, typename dType>
-RedBlackTree<kType, dType>::RedBlackTree()
-{
-
-}
+RedBlackTree<kType, dType>::RedBlackTree() {}
 
 
 template<typename kType, typename dType>

@@ -210,7 +210,5 @@ int main() {
     DB.printTreeFromRoot();
     std::cout << std::endl;
 
-
-
     return 0;
 }
