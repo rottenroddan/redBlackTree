@@ -1,3 +1,0 @@
-C:/Users/steve/CLionProjects/redBlackTree/cmake-build-debug/CMakeFiles/redBlackTree.dir
-C:/Users/steve/CLionProjects/redBlackTree/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/steve/CLionProjects/redBlackTree/cmake-build-debug/CMakeFiles/rebuild_cache.dir
